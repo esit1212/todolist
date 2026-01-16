@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
-class Mainscreen extends StatelessWidget {
+import 'todolist.dart';
+
+class Mainscreen extends StatefulWidget {
   const Mainscreen({super.key});
+
+  @override
+  State<Mainscreen> createState() => _MainscreenState();
+}
+
+class _MainscreenState extends State<Mainscreen> {
+  List<String> todoList = ['123'];
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +28,30 @@ class Mainscreen extends StatelessWidget {
               Padding(padding: EdgeInsets.only(left: 16.0)),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/todolist');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Todolist(
+                        todolist: todoList,
+                        onTodoListChanged: onTodoListChanged,
+                      ),
+                    ),
+                  );
                 },
-                child: Text('Open todolist'),
                 style: ElevatedButton.styleFrom(padding: EdgeInsets.all(16.0)),
+                child: Text('Open todolist'),
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+
+  void onTodoListChanged(List<String> todoList){
+    setState((){
+      this.todoList = todoList;
+    });
   }
 }

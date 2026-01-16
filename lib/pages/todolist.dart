@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class Todolist extends StatefulWidget {
-  const Todolist({super.key});
+  final List<String> todolist;
+  final Function(List<String> todoList) onTodoListChanged;
+
+  const Todolist({super.key, required this.todolist, required this.onTodoListChanged});
 
   @override
   State<Todolist> createState() => _TodolistState();
@@ -9,11 +12,17 @@ class Todolist extends StatefulWidget {
 
 class _TodolistState extends State<Todolist> {
   String? newTodo;
-  List<String> todoList = [];
+  late List<String> todoList = [...widget.todolist];
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose(){
+    widget.onTodoListChanged(todoList);
+    super.dispose();
   }
 
   @override
