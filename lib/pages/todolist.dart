@@ -30,6 +30,7 @@ class _TodolistState extends State<Todolist> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Todolist', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.brown,
       ),
       body: Column(
@@ -86,7 +87,8 @@ class _TodolistState extends State<Todolist> {
                               });
                               Navigator.of(context).pop();
                             },
-                            child: Text('Add'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
+                            child: Text('Add', style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       );
