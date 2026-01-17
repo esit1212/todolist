@@ -4,7 +4,11 @@ class Todolist extends StatefulWidget {
   final List<String> todolist;
   final Function(List<String> todoList) onTodoListChanged;
 
-  const Todolist({super.key, required this.todolist, required this.onTodoListChanged});
+  const Todolist({
+    super.key,
+    required this.todolist,
+    required this.onTodoListChanged,
+  });
 
   @override
   State<Todolist> createState() => _TodolistState();
@@ -20,7 +24,7 @@ class _TodolistState extends State<Todolist> {
   }
 
   @override
-  void dispose(){
+  void dispose() {
     widget.onTodoListChanged(todoList);
     super.dispose();
   }
@@ -69,6 +73,7 @@ class _TodolistState extends State<Todolist> {
               padding: const EdgeInsets.all(16),
               child: FloatingActionButton(
                 onPressed: () {
+                  newTodo = null;
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
@@ -82,13 +87,21 @@ class _TodolistState extends State<Todolist> {
                         actions: [
                           ElevatedButton(
                             onPressed: () {
-                              setState(() {
-                                todoList.add(newTodo!);
-                              });
+                              if (newTodo != null &&
+                                  newTodo!.trim().isNotEmpty) {
+                                setState(() {
+                                  todoList.add(newTodo!.trim());
+                                });
+                              }
                               Navigator.of(context).pop();
                             },
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
-                            child: Text('Add', style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.brown,
+                            ),
+                            child: Text(
+                              'Add',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ],
                       );

@@ -10,7 +10,7 @@ class Mainscreen extends StatefulWidget {
 }
 
 class _MainscreenState extends State<Mainscreen> {
-  List<String> todoList = ['123'];
+  List<String> todoList = [];
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +38,14 @@ class _MainscreenState extends State<Mainscreen> {
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(padding: EdgeInsets.all(16.0),
-                backgroundColor: Colors.brown),
-                child: Text('Open todolist', style: TextStyle(color:Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.all(16.0),
+                  backgroundColor: Colors.brown,
+                ),
+                child: Text(
+                  'Open todolist',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -49,9 +54,8 @@ class _MainscreenState extends State<Mainscreen> {
     );
   }
 
-
-  void onTodoListChanged(List<String> todoList){
-    setState((){
+  void onTodoListChanged(List<String> todoList) {
+    setState(() {
       this.todoList = todoList;
     });
   }
