@@ -37,95 +37,97 @@ class _TodolistState extends State<Todolist> {
         centerTitle: true,
         backgroundColor: Colors.brown,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
 
-          Expanded(
-            child: todoList.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No tasks yet.\nTap + to add one',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: todoList.length,
-                    itemBuilder: (context, index) {
-                      return Dismissible(
-                        key: ValueKey(todoList[index]),
-                        onDismissed: (_) {
-                          setState(() {
-                            todoList.removeAt(index);
-                          });
-                        },
-                        child: Card(
-                          child: ListTile(title: Text(todoList[index])),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: FloatingActionButton(
-                onPressed: () {
-                  newTodo = null;
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Add todo'),
-                        content: TextField(
-                          onChanged: (String value) {
-                            newTodo = value;
+            Expanded(
+              child: todoList.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No tasks yet.\nTap + to add one',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: todoList.length,
+                      itemBuilder: (context, index) {
+                        return Dismissible(
+                          key: ValueKey(todoList[index]),
+                          onDismissed: (_) {
+                            setState(() {
+                              todoList.removeAt(index);
+                            });
                           },
-                        ),
-                        actions: [
-                          ElevatedButton(
-                            onPressed: () {
-                              if (newTodo != null &&
-                                  newTodo!.trim().isNotEmpty) {
-                                setState(() {
-                                  todoList.add(newTodo!.trim());
-                                });
-                              }
-                              Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.brown,
-                            ),
-                            child: Text(
-                              'Add',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                          child: Card(
+                            child: ListTile(title: Text(todoList[index])),
                           ),
-                        ],
+                        );
+                      },
+                    ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Back to Main Screen'),
+                  ),
+
+                  FloatingActionButton(
+                    onPressed: () {
+                      newTodo = null;
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Add todo'),
+                            content: TextField(
+                              onChanged: (String value) {
+                                newTodo = value;
+                              },
+                            ),
+                            actions: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  if (newTodo != null &&
+                                      newTodo!.trim().isNotEmpty) {
+                                    setState(() {
+                                      todoList.add(newTodo!.trim());
+                                    });
+                                  }
+                                  Navigator.of(context).pop();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.brown,
+                                ),
+                                child: Text(
+                                  'Add',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
-                  );
-                },
-                backgroundColor: Colors.brown,
-                child: Icon(Icons.add, color: Colors.white),
+                    backgroundColor: Colors.brown,
+                    child: Icon(Icons.add, color: Colors.white),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Back to Main Screen'),
-              ),
-            ),
-          ),
-        ],
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
