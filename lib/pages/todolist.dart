@@ -53,7 +53,8 @@ class _TodolistState extends State<Todolist> {
       appBar: AppBar(title: Text(widget.category.name), centerTitle: true),
       body: todoList.isEmpty
           ? const Center(child: Text("No tasks yet"))
-          : ListView.builder(
+          : ReorderableListView.builder(
+              buildDefaultDragHandles: false,
               itemCount: todoList.length,
               itemBuilder: (context, index) {
                 return Dismissible(
@@ -63,8 +64,33 @@ class _TodolistState extends State<Todolist> {
                       todoList.removeAt(index);
                     });
                   },
-                  child: Card(child: ListTile(title: Text(todoList[index]))),
+                  child: Card(
+                    child: ListTile(
+                      leading: ReorderableDragStartListener(
+                        child: Icon(Icons.list),
+                        index: index,
+                      ),
+                      title: Center(child: Text(todoList[index])),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: (){
+                          setState(() {
+                            todoList.removeAt(index);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 );
+              },
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  final String item = todoList.removeAt(oldIndex);
+                  todoList.insert(newIndex, item);
+                });
               },
             ),
       floatingActionButton: FloatingActionButton(

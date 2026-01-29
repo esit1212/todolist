@@ -68,8 +68,16 @@ class _MainscreenState extends State<Mainscreen> {
                           builder: (_) => Todolist(category: category),
                         ),
                       );
-                      setState(() {}); // обновить количество задач
+                      setState(() {});
                     },
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        setState(() {
+                          categories.removeAt(index);
+                        });
+                      },
+                    ),
                   ),
                 );
               },
