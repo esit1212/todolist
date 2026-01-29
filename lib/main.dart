@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
-
 import 'pages/mainscreen.dart';
-import 'pages/todolist.dart';
 
 void main() {
-  runApp(
-    MaterialApp(
-      theme: ThemeData(primaryColor: Colors.brown),
-      home: Mainscreen(),
-    ),
-  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
+        useMaterial3: true,
+      ),
+      home: const Mainscreen(),
+    );
+  }
 }

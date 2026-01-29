@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'todolist.dart';
+
+class Category {
+  String name;
+  List<String> todos;
+
+  Category({required this.name, required this.todos});
+}
 
 class Mainscreen extends StatefulWidget {
   const Mainscreen({super.key});
@@ -10,53 +16,76 @@ class Mainscreen extends StatefulWidget {
 }
 
 class _MainscreenState extends State<Mainscreen> {
-  List<String> todoList = [];
+  List<Category> categories = [];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Main Screen', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        backgroundColor: Colors.brown,
-      ),
-      body: Column(
-        children: [
-          Padding(padding: EdgeInsets.only(top: 16.0)),
-          Row(
-            children: [
-              Padding(padding: EdgeInsets.only(left: 16.0)),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Todolist(
-                        todolist: todoList,
-                        onTodoListChanged: onTodoListChanged,
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.all(16.0),
-                  backgroundColor: Colors.brown,
-                ),
-                child: Text(
-                  'Open todolist',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+  void _addCategoryDialog() {
+    String? name;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("New Category"),
+        content: TextField(
+          onChanged: (v) => name = v,
+          decoration: const InputDecoration(hintText: "Category name"),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              if (name != null && name!.trim().isNotEmpty) {
+                setState(() {
+                  categories.add(Category(name: name!.trim(), todos: []));
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Add"),
           ),
         ],
       ),
     );
   }
 
-  void onTodoListChanged(List<String> todoList) {
-    setState(() {
-      this.todoList = todoList;
-    });
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Categories"), centerTitle: true),
+      body: categories.isEmpty
+          ? const Center(child: Text("No categories yet"))
+          : ListView.builder(
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
+
+                return Card(
+                  child: ListTile(
+                    title: Text(category.name),
+                    subtitle: Text("${category.todos.length} tasks"),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => Todolist(category: category),
+                        ),
+                      );
+                      setState(() {});
+                    },
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        setState(() {
+                          categories.removeAt(index);
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addCategoryDialog,
+        child: const Icon(Icons.add),
+      ),
+    );
   }
 }
