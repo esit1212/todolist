@@ -68,7 +68,7 @@ class _MainscreenState extends State<Mainscreen> {
                           builder: (_) => Todolist(category: category),
                         ),
                       );
-                      setState(() {}); // обновить количество задач
+                      setState(() {});
                     },
                   ),
                 );
