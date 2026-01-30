@@ -70,6 +70,14 @@ class _MainscreenState extends State<Mainscreen> {
                       );
                       setState(() {});
                     },
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        setState(() {
+                          categories.removeAt(index);
+                        });
+                      },
+                    ),
                   ),
                 );
               },
