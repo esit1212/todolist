@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'todolist.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../theme.dart';
 
 class Mainscreen extends StatefulWidget {
-  const Mainscreen({super.key});
+  const Mainscreen({
+    super.key,
+    // required this.toggleTheme,
+    // required this.themeMode,
+  });
+
+  // final void Function() toggleTheme;
+  // final ThemeMode themeMode;
 
   @override
   State<Mainscreen> createState() => _MainscreenState();
@@ -22,6 +30,13 @@ class _MainscreenState extends State<Mainscreen> {
         .collection('categories')
         .add({'name': name, 'createdAt': FieldValue.serverTimestamp()});
     return docref.id;
+  }
+
+  Future<void> deleteCategory(String categoryId) async {
+    await FirebaseFirestore.instance
+        .collection('categories')
+        .doc(categoryId)
+        .delete();
   }
 
   void _addCategoryDialog() {
@@ -50,10 +65,44 @@ class _MainscreenState extends State<Mainscreen> {
     );
   }
 
+  void _deleteCategoryDialog(String categoryId) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Category"),
+        content: const Text("Are you sure you want to delete this category?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await deleteCategory(categoryId);
+              Navigator.pop(context);
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Categories"), centerTitle: true),
+      appBar: AppBar(
+        title: const Text("Categories"),
+        centerTitle: true,
+        // actions: [
+        //   IconButton(
+        //     onPressed: toggleTheme,
+        //     icon: Icon(
+        //       themeMode = ThemeMode.light ? Icons.light_mode : Icons.dark_mode,
+        //     ),
+        //   ),
+        // ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: getCategories(),
         builder: (context, snapshot) {
@@ -87,12 +136,7 @@ class _MainscreenState extends State<Mainscreen> {
                   },
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      FirebaseFirestore.instance
-                          .collection('categories')
-                          .doc(categoryId)
-                          .delete();
-                    },
+                    onPressed: () => _deleteCategoryDialog(categoryId),
                   ),
                 ),
               );

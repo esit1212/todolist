@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../theme.dart';
 
 class Todolist extends StatefulWidget {
   final String categoryId;
@@ -16,7 +17,6 @@ class _TodolistState extends State<Todolist> {
         .collection('categories')
         .doc(widget.categoryId)
         .collection('todos')
-        .orderBy('done')
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
