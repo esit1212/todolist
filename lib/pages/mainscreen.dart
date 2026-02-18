@@ -6,12 +6,12 @@ import '../../theme.dart';
 class Mainscreen extends StatefulWidget {
   const Mainscreen({
     super.key,
-    // required this.toggleTheme,
-    // required this.themeMode,
+    required this.toggleTheme,
+    required this.themeMode,
   });
 
-  // final void Function() toggleTheme;
-  // final ThemeMode themeMode;
+  final void Function() toggleTheme;
+  final ThemeMode themeMode;
 
   @override
   State<Mainscreen> createState() => _MainscreenState();
@@ -94,14 +94,16 @@ class _MainscreenState extends State<Mainscreen> {
       appBar: AppBar(
         title: const Text("Categories"),
         centerTitle: true,
-        // actions: [
-        //   IconButton(
-        //     onPressed: toggleTheme,
-        //     icon: Icon(
-        //       themeMode = ThemeMode.light ? Icons.light_mode : Icons.dark_mode,
-        //     ),
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            onPressed: widget.toggleTheme,
+            icon: Icon(
+              widget.themeMode == ThemeMode.light
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: getCategories(),

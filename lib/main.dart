@@ -6,9 +6,7 @@ import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -20,15 +18,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // ThemeMode _themeMode = ThemeMode.light;
-  //
-  // void ToggleTheme() {
-  //   setState(() {
-  //     _themeMode = _themeMode == ThemeMode.light
-  //         ? ThemeMode.dark
-  //         : ThemeMode.light;
-  //   });
-  // }
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light
+          ? ThemeMode.dark
+          : ThemeMode.light;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,11 +34,8 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: LightTheme,
       darkTheme: DarkTheme,
-      // themeMode: _themeMode,
-      home: Mainscreen(
-        // toggleTheme: ToggleTheme,
-        // themeMode: _themeMode,
-      ),
+      themeMode: _themeMode,
+      home: Mainscreen(toggleTheme: _toggleTheme, themeMode: _themeMode),
     );
   }
 }
