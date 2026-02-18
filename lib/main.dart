@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
 import 'pages/mainscreen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint(
+      'Firebase initialized for platform: ${DefaultFirebaseOptions.currentPlatform.appId}',
+    );
+    debugPrint(
+      'Available Firebase apps: ${Firebase.apps.map((a) => a.name).toList()}',
+    );
+  } catch (e, st) {
+    // Log error so we can see why Firebase failed to initialize (use browser console on web)
+    debugPrint('Firebase initialization error: $e');
+    debugPrint('$st');
+  }
+
   runApp(const MyApp());
 }
 

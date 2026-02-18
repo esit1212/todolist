@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'todolist.dart';
-
-class Category {
-  String name;
-  List<String> todos;
-
-  Category({required this.name, required this.todos});
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Mainscreen extends StatefulWidget {
   const Mainscreen({super.key});
@@ -16,7 +10,19 @@ class Mainscreen extends StatefulWidget {
 }
 
 class _MainscreenState extends State<Mainscreen> {
-  List<Category> categories = [];
+  Stream<QuerySnapshot> getCategories() {
+    return FirebaseFirestore.instance
+        .collection('categories')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<String> addCategory(String name) async {
+    DocumentReference docref = await FirebaseFirestore.instance
+        .collection('categories')
+        .add({'name': name, 'createdAt': FieldValue.serverTimestamp()});
+    return docref.id;
+  }
 
   void _addCategoryDialog() {
     String? name;
@@ -31,15 +37,13 @@ class _MainscreenState extends State<Mainscreen> {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (name != null && name!.trim().isNotEmpty) {
-                setState(() {
-                  categories.add(Category(name: name!.trim(), todos: []));
-                });
+                await addCategory(name!.trim());
               }
               Navigator.pop(context);
             },
-            child: const Text("Add"),
+            child: const Text("Add Category"),
           ),
         ],
       ),
@@ -50,38 +54,52 @@ class _MainscreenState extends State<Mainscreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Categories"), centerTitle: true),
-      body: categories.isEmpty
-          ? const Center(child: Text("No categories yet"))
-          : ListView.builder(
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
+      body: StreamBuilder<QuerySnapshot>(
+        stream: getCategories(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                return Card(
-                  child: ListTile(
-                    title: Text(category.name),
-                    subtitle: Text("${category.todos.length} tasks"),
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => Todolist(category: category),
-                        ),
-                      );
-                      setState(() {});
+          final docs = snapshot.data!.docs;
+
+          if (docs.isEmpty) {
+            return const Center(child: Text("No categories yet"));
+          }
+
+          return ListView.builder(
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final doc = docs[index];
+              final name = doc['name'];
+              final categoryId = doc.id;
+
+              return Card(
+                child: ListTile(
+                  title: Text(name),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => Todolist(categoryId: categoryId),
+                      ),
+                    );
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      FirebaseFirestore.instance
+                          .collection('categories')
+                          .doc(categoryId)
+                          .delete();
                     },
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        setState(() {
-                          categories.removeAt(index);
-                        });
-                      },
-                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addCategoryDialog,
         child: const Icon(Icons.add),
