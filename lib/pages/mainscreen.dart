@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'todolist.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../bloc/category/category_bloc.dart';
+import '../bloc/todo/todo_bloc.dart';
 
 class Mainscreen extends StatefulWidget {
   const Mainscreen({
@@ -17,25 +19,18 @@ class Mainscreen extends StatefulWidget {
 }
 
 class _MainscreenState extends State<Mainscreen> {
-  Stream<QuerySnapshot> getCategories() {
-    return FirebaseFirestore.instance
-        .collection('categories')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+  late final CategoryBloc _categoryBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryBloc = CategoryBloc()..add(const CategoriesStarted());
   }
 
-  Future<String> addCategory(String name) async {
-    DocumentReference docref = await FirebaseFirestore.instance
-        .collection('categories')
-        .add({'name': name, 'createdAt': FieldValue.serverTimestamp()});
-    return docref.id;
-  }
-
-  Future<void> deleteCategory(String categoryId) async {
-    await FirebaseFirestore.instance
-        .collection('categories')
-        .doc(categoryId)
-        .delete();
+  @override
+  void dispose() {
+    _categoryBloc.close();
+    super.dispose();
   }
 
   void _addCategoryDialog() {
@@ -53,7 +48,7 @@ class _MainscreenState extends State<Mainscreen> {
           ElevatedButton(
             onPressed: () async {
               if (name != null && name!.trim().isNotEmpty) {
-                await addCategory(name!.trim());
+                _categoryBloc.add(CategoryAdded(name!.trim()));
               }
               Navigator.pop(context);
             },
@@ -77,7 +72,7 @@ class _MainscreenState extends State<Mainscreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await deleteCategory(categoryId);
+              _categoryBloc.add(CategoryDeleted(categoryId));
               Navigator.pop(context);
             },
             child: const Text("Delete"),
@@ -89,65 +84,75 @@ class _MainscreenState extends State<Mainscreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Categories"),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: widget.toggleTheme,
-            icon: Icon(
-              widget.themeMode == ThemeMode.light
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
+    return BlocProvider.value(
+      value: _categoryBloc,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Categories"),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              onPressed: widget.toggleTheme,
+              icon: Icon(
+                widget.themeMode == ThemeMode.light
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
+              ),
             ),
-          ),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: getCategories(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          ],
+        ),
+        body: BlocBuilder<CategoryBloc, CategoryState>(
+          builder: (context, state) {
+            if (state.status == CategoryStatus.loading ||
+                state.status == CategoryStatus.initial) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final docs = snapshot.data!.docs;
-
-          if (docs.isEmpty) {
-            return const Center(child: Text("No categories yet"));
-          }
-
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final name = doc['name'];
-              final categoryId = doc.id;
-
-              return Card(
-                child: ListTile(
-                  title: Text(name),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => Todolist(categoryId: categoryId),
-                      ),
-                    );
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _deleteCategoryDialog(categoryId),
-                  ),
-                ),
+            if (state.status == CategoryStatus.error) {
+              return Center(
+                child: Text(state.errorMessage ?? 'Failed to load categories'),
               );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addCategoryDialog,
-        child: const Icon(Icons.add),
+            }
+
+            if (state.categories.isEmpty) {
+              return const Center(child: Text("No categories yet"));
+            }
+
+            return ListView.builder(
+              itemCount: state.categories.length,
+              itemBuilder: (context, index) {
+                final category = state.categories[index];
+
+                return Card(
+                  child: ListTile(
+                    title: Text(category.name),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) =>
+                                TodoBloc(categoryId: category.id)
+                                  ..add(const TodosStarted()),
+                            child: Todolist(categoryId: category.id),
+                          ),
+                        ),
+                      );
+                    },
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _deleteCategoryDialog(category.id),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _addCategoryDialog,
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
