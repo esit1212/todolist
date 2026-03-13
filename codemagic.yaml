@@ -1,0 +1,47 @@
+workflows:
+  ios_ipa_release:
+    name: iOS IPA (Release)
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        # Change this to your own bundle id before signing.
+        CM_BUNDLE_ID: com.example.testverst4
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod repo update
+          pod install
+
+      # --- Code signing (Codemagic CI) ---
+      # To produce a *signed* .ipa for device testing, configure App Store Connect API key
+      # in Codemagic UI env vars:
+      #   APP_STORE_CONNECT_KEY_IDENTIFIER
+      #   APP_STORE_CONNECT_ISSUER_ID
+      #   APP_STORE_CONNECT_PRIVATE_KEY (as a secure environment variable)
+      # and make sure the bundle id (CM_BUNDLE_ID) exists in your Apple Developer account.
+      - name: Set up keychain
+        script: keychain initialize
+
+      - name: Fetch signing files (development)
+        script: app-store-connect fetch-signing-files "$CM_BUNDLE_ID" --type IOS_APP_DEVELOPMENT
+
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+
+      - name: Use provisioning profiles
+        script: xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: flutter build ipa --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - build/ios/ipa/*.dSYM.zip

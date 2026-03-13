@@ -123,7 +123,6 @@ class _TodolistState extends State<Todolist> {
   void _showTrashSheet() {
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       builder: (_) => SafeArea(
         child: BlocBuilder<TodoBloc, TodoState>(
           bloc: _todoBloc,

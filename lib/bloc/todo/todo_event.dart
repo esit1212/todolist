@@ -1,60 +1,60 @@
 part of 'todo_bloc.dart';
 
-sealed class TodoEvent {
+abstract class TodoEvent {
   const TodoEvent();
 }
 
-final class TodosStarted extends TodoEvent {
+class TodosStarted extends TodoEvent {
   const TodosStarted();
 }
 
-final class TodoAdded extends TodoEvent {
+class TodoAdded extends TodoEvent {
   const TodoAdded({required this.title, this.note = ''});
 
   final String title;
   final String note;
 }
 
-final class TodoToggled extends TodoEvent {
+class TodoToggled extends TodoEvent {
   const TodoToggled({required this.todoId, required this.done});
 
   final String todoId;
   final bool done;
 }
 
-final class TodoDeleted extends TodoEvent {
+class TodoDeleted extends TodoEvent {
   const TodoDeleted(this.todoId);
 
   final String todoId;
 }
 
-final class TodoRestored extends TodoEvent {
+class TodoRestored extends TodoEvent {
   const TodoRestored(this.todoId);
 
   final String todoId;
 }
 
-final class ArchivedTodoDeleted extends TodoEvent {
+class ArchivedTodoDeleted extends TodoEvent {
   const ArchivedTodoDeleted(this.todoId);
 
   final String todoId;
 }
 
-final class TodoNoteUpdated extends TodoEvent {
+class TodoNoteUpdated extends TodoEvent {
   const TodoNoteUpdated({required this.todoId, required this.note});
 
   final String todoId;
   final String note;
 }
 
-final class TodosChanged extends TodoEvent {
+class TodosChanged extends TodoEvent {
   const TodosChanged({required this.todos, required this.archivedTodos});
 
   final List<TodoItem> todos;
   final List<TodoItem> archivedTodos;
 }
 
-final class TodosFailed extends TodoEvent {
+class TodosFailed extends TodoEvent {
   const TodosFailed(this.message);
 
   final String message;

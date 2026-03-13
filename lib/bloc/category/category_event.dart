@@ -1,32 +1,32 @@
 part of 'category_bloc.dart';
 
-sealed class CategoryEvent {
+abstract class CategoryEvent {
   const CategoryEvent();
 }
 
-final class CategoriesStarted extends CategoryEvent {
+class CategoriesStarted extends CategoryEvent {
   const CategoriesStarted();
 }
 
-final class CategoryAdded extends CategoryEvent {
+class CategoryAdded extends CategoryEvent {
   const CategoryAdded(this.name);
 
   final String name;
 }
 
-final class CategoryDeleted extends CategoryEvent {
+class CategoryDeleted extends CategoryEvent {
   const CategoryDeleted(this.categoryId);
 
   final String categoryId;
 }
 
-final class CategoriesChanged extends CategoryEvent {
+class CategoriesChanged extends CategoryEvent {
   const CategoriesChanged(this.categories);
 
   final List<CategoryItem> categories;
 }
 
-final class CategoriesFailed extends CategoryEvent {
+class CategoriesFailed extends CategoryEvent {
   const CategoriesFailed(this.message);
 
   final String message;
