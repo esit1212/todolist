@@ -1,7 +1,6 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../data/local_storage_repository.dart';
 
 part 'category_event.dart';
 part 'category_state.dart';
@@ -14,8 +13,8 @@ class CategoryItem {
 }
 
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
-  CategoryBloc({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
+  CategoryBloc({required LocalStorageRepository repository})
+    : _repository = repository,
       super(const CategoryState()) {
     on<CategoriesStarted>(_onStarted);
     on<CategoryAdded>(_onAdded);
@@ -24,34 +23,14 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     on<CategoriesFailed>(_onFailed);
   }
 
-  final FirebaseFirestore _firestore;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
+  final LocalStorageRepository _repository;
 
   Future<void> _onStarted(
     CategoriesStarted event,
     Emitter<CategoryState> emit,
   ) async {
     emit(state.copyWith(status: CategoryStatus.loading, clearError: true));
-
-    await _subscription?.cancel();
-    _subscription = _firestore
-        .collection('categories')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            final categories = snapshot.docs
-                .map(
-                  (doc) =>
-                      CategoryItem(id: doc.id, name: doc.data()['name'] ?? ''),
-                )
-                .toList();
-            add(CategoriesChanged(categories));
-          },
-          onError: (Object error) {
-            add(CategoriesFailed(error.toString()));
-          },
-        );
+    await _refreshCategories();
   }
 
   Future<void> _onAdded(
@@ -64,10 +43,8 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     }
 
     try {
-      await _firestore.collection('categories').add({
-        'name': name,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _repository.addCategory(name);
+      await _refreshCategories();
     } catch (error) {
       emit(
         state.copyWith(
@@ -83,7 +60,8 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     Emitter<CategoryState> emit,
   ) async {
     try {
-      await _firestore.collection('categories').doc(event.categoryId).delete();
+      await _repository.deleteCategory(event.categoryId);
+      await _refreshCategories();
     } catch (error) {
       emit(
         state.copyWith(
@@ -110,9 +88,20 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     );
   }
 
-  @override
-  Future<void> close() async {
-    await _subscription?.cancel();
-    return super.close();
+  Future<void> _refreshCategories() async {
+    try {
+      final categoriesData = await _repository.getCategories();
+      final categories = categoriesData
+          .map(
+            (item) => CategoryItem(
+              id: item['id'] as String,
+              name: item['name'] as String? ?? '',
+            ),
+          )
+          .toList();
+      add(CategoriesChanged(categories));
+    } catch (error) {
+      add(CategoriesFailed(error.toString()));
+    }
   }
 }

@@ -1,62 +1,47 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../data/local_storage_repository.dart';
 
 part 'todo_event.dart';
 part 'todo_state.dart';
 
 class TodoItem {
-  const TodoItem({required this.id, required this.title, required this.done});
+  const TodoItem({
+    required this.id,
+    required this.title,
+    required this.done,
+    required this.note,
+  });
 
   final String id;
   final String title;
   final bool done;
+  final String note;
 }
 
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
-  TodoBloc({required this.categoryId, FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      super(const TodoState()) {
+  TodoBloc({
+    required this.categoryId,
+    required LocalStorageRepository repository,
+  }) : _repository = repository,
+       super(const TodoState()) {
     on<TodosStarted>(_onStarted);
     on<TodoAdded>(_onAdded);
     on<TodoToggled>(_onToggled);
     on<TodoDeleted>(_onDeleted);
+    on<TodoRestored>(_onRestored);
+    on<ArchivedTodoDeleted>(_onArchivedDeleted);
+    on<TodoNoteUpdated>(_onNoteUpdated);
     on<TodosChanged>(_onChanged);
     on<TodosFailed>(_onFailed);
   }
 
-  final FirebaseFirestore _firestore;
+  final LocalStorageRepository _repository;
   final String categoryId;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
-
-  CollectionReference<Map<String, dynamic>> get _todosRef =>
-      _firestore.collection('categories').doc(categoryId).collection('todos');
 
   Future<void> _onStarted(TodosStarted event, Emitter<TodoState> emit) async {
     emit(state.copyWith(status: TodoStatus.loading, clearError: true));
-
-    await _subscription?.cancel();
-    _subscription = _todosRef
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            final todos = snapshot.docs
-                .map(
-                  (doc) => TodoItem(
-                    id: doc.id,
-                    title: doc.data()['title'] ?? '',
-                    done: doc.data()['done'] ?? false,
-                  ),
-                )
-                .toList();
-            add(TodosChanged(todos));
-          },
-          onError: (Object error) {
-            add(TodosFailed(error.toString()));
-          },
-        );
+    await _refreshTodos();
   }
 
   Future<void> _onAdded(TodoAdded event, Emitter<TodoState> emit) async {
@@ -66,11 +51,12 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     }
 
     try {
-      await _todosRef.add({
-        'title': title,
-        'done': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _repository.addTodo(
+        categoryId: categoryId,
+        title: title,
+        note: event.note,
+      );
+      await _refreshTodos();
     } catch (error) {
       emit(
         state.copyWith(
@@ -83,7 +69,12 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
 
   Future<void> _onToggled(TodoToggled event, Emitter<TodoState> emit) async {
     try {
-      await _todosRef.doc(event.todoId).update({'done': event.done});
+      await _repository.toggleTodo(
+        categoryId: categoryId,
+        todoId: event.todoId,
+        done: event.done,
+      );
+      await _refreshTodos();
     } catch (error) {
       emit(
         state.copyWith(
@@ -96,7 +87,69 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
 
   Future<void> _onDeleted(TodoDeleted event, Emitter<TodoState> emit) async {
     try {
-      await _todosRef.doc(event.todoId).delete();
+      await _repository.deleteTodo(
+        categoryId: categoryId,
+        todoId: event.todoId,
+      );
+      await _refreshTodos();
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: TodoStatus.error,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onRestored(TodoRestored event, Emitter<TodoState> emit) async {
+    try {
+      await _repository.restoreTodo(
+        categoryId: categoryId,
+        todoId: event.todoId,
+      );
+      await _refreshTodos();
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: TodoStatus.error,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onArchivedDeleted(
+    ArchivedTodoDeleted event,
+    Emitter<TodoState> emit,
+  ) async {
+    try {
+      await _repository.deleteArchivedTodo(
+        categoryId: categoryId,
+        todoId: event.todoId,
+      );
+      await _refreshTodos();
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: TodoStatus.error,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onNoteUpdated(
+    TodoNoteUpdated event,
+    Emitter<TodoState> emit,
+  ) async {
+    try {
+      await _repository.updateTodoNote(
+        categoryId: categoryId,
+        todoId: event.todoId,
+        note: event.note,
+      );
+      await _refreshTodos();
     } catch (error) {
       emit(
         state.copyWith(
@@ -112,6 +165,7 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
       state.copyWith(
         status: TodoStatus.loaded,
         todos: event.todos,
+        archivedTodos: event.archivedTodos,
         clearError: true,
       ),
     );
@@ -121,9 +175,33 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     emit(state.copyWith(status: TodoStatus.error, errorMessage: event.message));
   }
 
-  @override
-  Future<void> close() async {
-    await _subscription?.cancel();
-    return super.close();
+  Future<void> _refreshTodos() async {
+    try {
+      final todosData = await _repository.getTodos(categoryId);
+      final archivedTodosData = await _repository.getArchivedTodos(categoryId);
+      final todos = todosData
+          .map(
+            (item) => TodoItem(
+              id: item['id'] as String,
+              title: item['title'] as String? ?? '',
+              done: item['done'] as bool? ?? false,
+              note: item['note'] as String? ?? '',
+            ),
+          )
+          .toList();
+      final archivedTodos = archivedTodosData
+          .map(
+            (item) => TodoItem(
+              id: item['id'] as String,
+              title: item['title'] as String? ?? '',
+              done: item['done'] as bool? ?? false,
+              note: item['note'] as String? ?? '',
+            ),
+          )
+          .toList();
+      add(TodosChanged(todos: todos, archivedTodos: archivedTodos));
+    } catch (error) {
+      add(TodosFailed(error.toString()));
+    }
   }
 }

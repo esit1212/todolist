@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'todolist.dart';
 import '../bloc/category/category_bloc.dart';
 import '../bloc/todo/todo_bloc.dart';
+import '../data/local_storage_repository.dart';
 
 class Mainscreen extends StatefulWidget {
   const Mainscreen({
@@ -20,11 +21,14 @@ class Mainscreen extends StatefulWidget {
 
 class _MainscreenState extends State<Mainscreen> {
   late final CategoryBloc _categoryBloc;
+  late final LocalStorageRepository _repository;
 
   @override
   void initState() {
     super.initState();
-    _categoryBloc = CategoryBloc()..add(const CategoriesStarted());
+    _repository = LocalStorageRepository.instance;
+    _categoryBloc = CategoryBloc(repository: _repository)
+      ..add(const CategoriesStarted());
   }
 
   @override
@@ -34,25 +38,46 @@ class _MainscreenState extends State<Mainscreen> {
   }
 
   void _addCategoryDialog() {
-    String? name;
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("New Category"),
-        content: TextField(
-          onChanged: (v) => name = v,
-          decoration: const InputDecoration(hintText: "Category name"),
+        title: const Text('Новая категория'),
+        content: Form(
+          key: formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: TextFormField(
+            controller: nameController,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: 'Название',
+              isDense: true,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Введите название категории';
+              }
+              return null;
+            },
+          ),
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
           ElevatedButton(
-            onPressed: () async {
-              if (name != null && name!.trim().isNotEmpty) {
-                _categoryBloc.add(CategoryAdded(name!.trim()));
+            onPressed: () {
+              if (!formKey.currentState!.validate()) {
+                return;
               }
+              _categoryBloc.add(CategoryAdded(nameController.text.trim()));
               Navigator.pop(context);
             },
-            child: const Text("Add Category"),
+            child: const Text('Добавить'),
           ),
         ],
       ),
@@ -63,19 +88,19 @@ class _MainscreenState extends State<Mainscreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Delete Category"),
-        content: const Text("Are you sure you want to delete this category?"),
+        title: const Text('Удалить категорию'),
+        content: const Text('Вы уверены, что хотите удалить эту категорию?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text('Отмена'),
           ),
           ElevatedButton(
             onPressed: () async {
               _categoryBloc.add(CategoryDeleted(categoryId));
               Navigator.pop(context);
             },
-            child: const Text("Delete"),
+            child: const Text('Удалить'),
           ),
         ],
       ),
@@ -88,7 +113,10 @@ class _MainscreenState extends State<Mainscreen> {
       value: _categoryBloc,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Categories"),
+          title: Text(
+            'Категории',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           centerTitle: true,
           actions: [
             IconButton(
@@ -115,25 +143,39 @@ class _MainscreenState extends State<Mainscreen> {
             }
 
             if (state.categories.isEmpty) {
-              return const Center(child: Text("No categories yet"));
+              return const Center(child: Text('Категорий пока нет'));
             }
 
-            return ListView.builder(
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
               itemCount: state.categories.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final category = state.categories[index];
 
                 return Card(
                   child: ListTile(
-                    title: Text(category.name),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    title: Text(
+                      category.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    subtitle: Text(
+                      'Открыть список задач',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
-                            create: (_) =>
-                                TodoBloc(categoryId: category.id)
-                                  ..add(const TodosStarted()),
+                            create: (_) => TodoBloc(
+                              categoryId: category.id,
+                              repository: _repository,
+                            )..add(const TodosStarted()),
                             child: Todolist(categoryId: category.id),
                           ),
                         ),
@@ -149,9 +191,10 @@ class _MainscreenState extends State<Mainscreen> {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: FloatingActionButton.extended(
           onPressed: _addCategoryDialog,
-          child: const Icon(Icons.add),
+          icon: const Icon(Icons.add),
+          label: const Text('Категория'),
         ),
       ),
     );

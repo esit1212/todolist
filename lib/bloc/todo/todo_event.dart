@@ -9,9 +9,10 @@ final class TodosStarted extends TodoEvent {
 }
 
 final class TodoAdded extends TodoEvent {
-  const TodoAdded(this.title);
+  const TodoAdded({required this.title, this.note = ''});
 
   final String title;
+  final String note;
 }
 
 final class TodoToggled extends TodoEvent {
@@ -27,10 +28,30 @@ final class TodoDeleted extends TodoEvent {
   final String todoId;
 }
 
+final class TodoRestored extends TodoEvent {
+  const TodoRestored(this.todoId);
+
+  final String todoId;
+}
+
+final class ArchivedTodoDeleted extends TodoEvent {
+  const ArchivedTodoDeleted(this.todoId);
+
+  final String todoId;
+}
+
+final class TodoNoteUpdated extends TodoEvent {
+  const TodoNoteUpdated({required this.todoId, required this.note});
+
+  final String todoId;
+  final String note;
+}
+
 final class TodosChanged extends TodoEvent {
-  const TodosChanged(this.todos);
+  const TodosChanged({required this.todos, required this.archivedTodos});
 
   final List<TodoItem> todos;
+  final List<TodoItem> archivedTodos;
 }
 
 final class TodosFailed extends TodoEvent {
